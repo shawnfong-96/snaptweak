@@ -1,0 +1,678 @@
+/* SnapTweak Content Script Styles */
+
+/* Base reset for SnapTweak elements */
+[class^="snaptweak-"] {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Selection Mode Active */
+body.snaptweak-active {
+  cursor: crosshair !important;
+}
+
+body.snaptweak-active * {
+  cursor: crosshair !important;
+}
+
+/* Overlay */
+.snaptweak-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2147483640;
+  pointer-events: none;
+}
+
+.snaptweak-toolbar-top {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  pointer-events: all;
+  z-index: 2147483647;
+  backdrop-filter: blur(12px);
+}
+
+.snaptweak-mode-switch {
+  display: flex;
+  gap: 4px;
+}
+
+.snaptweak-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.snaptweak-mode-btn.active {
+  background: #6366f1;
+  color: #fff;
+}
+
+.snaptweak-cancel-btn {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-cancel-btn:hover {
+  background: rgba(255, 80, 80, 0.15);
+  border-color: #ff5050;
+  color: #ff5050;
+}
+
+/* Element Highlight */
+.snaptweak-highlight {
+  position: absolute;
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 2147483639;
+  transition: all 0.1s ease;
+  display: none;
+}
+
+/* Area Selection Box */
+.snaptweak-selection-box {
+  position: fixed;
+  border: 2px dashed #6366f1;
+  background: rgba(99, 102, 241, 0.06);
+  z-index: 2147483641;
+  pointer-events: none;
+}
+
+/* Tooltip */
+.snaptweak-tooltip {
+  position: fixed;
+  padding: 4px 10px;
+  background: #1e1e2e;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 2147483647;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  display: none;
+}
+
+/* Annotation Container */
+.snaptweak-annotation-container {
+  position: fixed;
+  z-index: 2147483642;
+  border: 2px solid #6366f1;
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.snaptweak-annotation-container canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+/* Annotation Toolbar */
+.snaptweak-annotation-toolbar {
+  position: absolute;
+  bottom: -56px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.snaptweak-tool-group,
+.snaptweak-color-group,
+.snaptweak-action-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.snaptweak-tool-group::after,
+.snaptweak-color-group::after {
+  content: '';
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-left: 8px;
+}
+
+.snaptweak-tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #a0a0b0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.snaptweak-tool-btn.active {
+  background: #6366f1;
+  color: #fff;
+}
+
+.snaptweak-color-btn {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-color-btn.active {
+  border-color: #fff;
+  transform: scale(1.2);
+}
+
+.snaptweak-undo-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #a0a0b0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-undo-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.snaptweak-done-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-done-btn:hover {
+  background: #4f46e5;
+}
+
+.snaptweak-cancel-ann-btn {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.snaptweak-cancel-ann-btn:hover {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff5050;
+}
+
+/* ===== Inline Input (appears next to selection) ===== */
+.snaptweak-inline-input {
+  position: fixed;
+  z-index: 2147483646;
+  pointer-events: all;
+  animation: snaptweak-pop-in 0.2s ease-out;
+}
+
+@keyframes snaptweak-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.snaptweak-inline-input-inner {
+  width: 380px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.snaptweak-inline-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+  left: 32px;
+}
+
+.snaptweak-inline-arrow.below {
+  top: -7px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.snaptweak-inline-arrow.above {
+  bottom: -7px;
+  border-left: none;
+  border-top: none;
+}
+
+.snaptweak-inline-input-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.snaptweak-inline-textarea {
+  width: 100%;
+  min-height: 48px;
+  max-height: 120px;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1f2937;
+  resize: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.snaptweak-inline-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.snaptweak-inline-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.snaptweak-inline-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.snaptweak-inline-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-inline-submit-btn:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.snaptweak-inline-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.snaptweak-inline-ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-inline-ai-btn:hover:not(.disabled) {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.snaptweak-inline-ai-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+/* AI Hint / Setup */
+.snaptweak-ai-hint {
+  display: none;
+  align-items: center;
+}
+
+.snaptweak-ai-hint-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  width: 100%;
+}
+
+.snaptweak-ai-hint-content span {
+  flex: 1;
+}
+
+.snaptweak-inline-setup-btn {
+  padding: 4px 10px;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  background: #fff;
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-inline-setup-btn:hover {
+  background: #f59e0b;
+  color: #fff;
+}
+
+/* API Setup Form */
+.snaptweak-api-setup-form {
+  width: 100%;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.snaptweak-api-setup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #fde68a;
+  background: #fef9c3;
+}
+
+.snaptweak-api-setup-header span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #854d0e;
+}
+
+.snaptweak-api-setup-close {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #92400e;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.snaptweak-api-setup-close:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.snaptweak-api-setup-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.snaptweak-api-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #713f12;
+}
+
+.snaptweak-api-provider-select,
+.snaptweak-api-key-input {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1f2937;
+  background: #fff;
+}
+
+.snaptweak-api-provider-select:focus,
+.snaptweak-api-key-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.snaptweak-api-setup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.snaptweak-api-save-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-api-save-btn:hover {
+  background: #d97706;
+}
+
+.snaptweak-api-help-link {
+  font-size: 12px;
+  color: #6366f1;
+  text-decoration: none;
+}
+
+.snaptweak-api-help-link:hover {
+  text-decoration: underline;
+}
+
+.snaptweak-api-setup-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #065f46;
+}
+
+/* Inline Result */
+.snaptweak-inline-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.snaptweak-inline-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.snaptweak-inline-result-header span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.snaptweak-inline-result-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.snaptweak-inline-copy-btn,
+.snaptweak-inline-close-btn,
+.snaptweak-inline-new-btn {
+  padding: 5px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-inline-copy-btn:hover,
+.snaptweak-inline-new-btn:hover {
+  background: #f3f4f6;
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.snaptweak-inline-copy-btn.copied {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.snaptweak-inline-close-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.snaptweak-inline-close-btn:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.snaptweak-inline-result-content {
+  max-height: 200px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #1f2937;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin: 0;
+}
+
+.snaptweak-inline-result-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.snaptweak-inline-result-tip {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Shake animation */
+@keyframes snaptweak-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.snaptweak-shake {
+  animation: snaptweak-shake 0.4s ease;
+  border-color: #ef4444 !important;
+}
+
+/* Spinner */
+.snaptweak-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: snaptweak-spin 0.6s linear infinite;
+}
+
+@keyframes snaptweak-spin {
+  to { transform: rotate(360deg); }
+}

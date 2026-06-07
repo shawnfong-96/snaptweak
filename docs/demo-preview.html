@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapTweak — Interactive Demo Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f23;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at center top, rgba(99,102,241,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .logo-container {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(99,102,241,0.3);
+    }
+
+    .logo-container svg { width: 48px; height: 48px; }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: #a5b4fc;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+    }
+
+    /* Interactive Demo */
+    .demo-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .demo-title {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6366f1;
+      margin-bottom: 32px;
+    }
+
+    .demo-container {
+      background: #1a1a2e;
+      border-radius: 16px;
+      border: 1px solid rgba(99,102,241,0.2);
+      overflow: hidden;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+    }
+
+    .demo-browser-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: #16162a;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 8px;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .browser-dot:nth-child(1) { background: #ff5f57; }
+    .browser-dot:nth-child(2) { background: #febc2e; }
+    .browser-dot:nth-child(3) { background: #28c840; }
+
+    .browser-url {
+      flex: 1;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      font-size: 12px;
+      color: #6b7280;
+      margin-left: 12px;
+    }
+
+    .demo-page {
+      padding: 40px;
+      position: relative;
+      min-height: 500px;
+    }
+
+    /* Simulated page content */
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .sim-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .sim-nav {
+      display: flex;
+      gap: 20px;
+    }
+
+    .sim-nav a {
+      color: #94a3b8;
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .sim-card {
+      background: #252540;
+      border-radius: 12px;
+      padding: 32px;
+      position: relative;
+    }
+
+    .sim-card h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      color: #e2e8f0;
+    }
+
+    .sim-card p {
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .sim-btn {
+      padding: 10px 20px;
+      background: #4f46e5;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Annotation overlay simulation */
+    .annotation-overlay {
+      position: absolute;
+      top: 120px;
+      left: 36px;
+      right: 36px;
+      bottom: 36px;
+      pointer-events: none;
+      animation: fadeIn 0.5s ease 1s forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .selection-rect {
+      position: absolute;
+      bottom: 20px;
+      left: 28px;
+      width: 140px;
+      height: 44px;
+      border: 2.5px solid #FF4444;
+      border-radius: 4px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.3); }
+      50% { box-shadow: 0 0 0 8px rgba(255,68,68,0); }
+    }
+
+    .annotation-arrow {
+      position: absolute;
+      bottom: 72px;
+      left: 80px;
+      width: 2px;
+      height: 40px;
+      background: #FF4444;
+      transform: rotate(-15deg);
+      transform-origin: bottom center;
+    }
+
+    .annotation-arrow::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -5px;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 10px solid #FF4444;
+    }
+
+    .annotation-text {
+      position: absolute;
+      bottom: 116px;
+      left: 16px;
+      background: #FF4444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Inline input simulation (replaces old side panel) */
+    .sim-inline-input {
+      position: absolute;
+      bottom: -100px;
+      left: 36px;
+      width: 340px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      padding: 14px;
+      animation: popIn 0.3s ease 1.5s forwards;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    @keyframes popIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sim-inline-arrow-indicator {
+      position: absolute;
+      top: -7px;
+      left: 40px;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      transform: rotate(45deg);
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .sim-inline-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #374151;
+      background: #fff;
+      line-height: 1.5;
+      resize: none;
+      height: 42px;
+      margin-bottom: 10px;
+    }
+
+    .sim-inline-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .sim-inline-submit-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      background: #6366f1;
+      border: none;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .sim-inline-ai-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .sim-ai-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 7px;
+      font-size: 11px;
+      color: #92400e;
+      animation: fadeIn 0.3s ease 2s forwards;
+      opacity: 0;
+    }
+
+    .sim-ai-hint-btn {
+      padding: 3px 8px;
+      border: 1px solid #f59e0b;
+      border-radius: 4px;
+      background: #fff;
+      color: #d97706;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Steps Section */
+    .steps-section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+    }
+
+    .step-card {
+      background: #1a1a2e;
+      border: 1px solid rgba(99,102,241,0.15);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .step-card:hover {
+      border-color: rgba(99,102,241,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(99,102,241,0.15);
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(99,102,241,0.15);
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    .step-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #e2e8f0;
+    }
+
+    .step-card p {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* Features */
+    .features-section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .features-section h2 {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 48px;
+      color: #e2e8f0;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .feature-card .icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      padding: 60px 24px;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: #6366f1;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .cta-btn:hover {
+      background: #4f46e5;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(99,102,241,0.4);
+    }
+
+    .cta-sub {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="logo-container">
+      <svg viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="12" stroke="#fff" stroke-width="3" fill="none"/>
+        <circle cx="24" cy="24" r="3" fill="#fff"/>
+        <line x1="24" y1="8" x2="24" y2="12" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="24" y1="36" x2="24" y2="40" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="8" y1="24" x2="12" y2="24" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="36" y1="24" x2="40" y2="24" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>SnapTweak</h1>
+    <p class="subtitle">Circle anything. Describe what you want. Let AI handle the code.</p>
+    <div class="badges">
+      <span class="badge">Chrome Extension</span>
+      <span class="badge">Vue 3 + TypeScript</span>
+      <span class="badge">AI-Powered</span>
+      <span class="badge">Open Source</span>
+    </div>
+  </section>
+
+  <section class="demo-section">
+    <p class="demo-title">Interactive Demo</p>
+    <div class="demo-container">
+      <div class="demo-browser-bar">
+        <div class="browser-dots">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+        </div>
+        <div class="browser-url">https://my-awesome-app.vercel.app</div>
+      </div>
+      <div class="demo-page">
+        <div class="sim-header">
+          <div class="sim-logo">MyApp</div>
+          <div class="sim-nav">
+            <a>Home</a>
+            <a>Features</a>
+            <a>Pricing</a>
+          </div>
+        </div>
+        <div class="sim-card">
+          <h2>Welcome to MyApp</h2>
+          <p>This is the landing page that AI built for you. Looks good, but you want to tweak a few things...</p>
+          <button class="sim-btn">Get Started</button>
+        </div>
+
+        <!-- Annotations overlay -->
+        <div class="annotation-overlay">
+          <div class="selection-rect"></div>
+          <div class="annotation-arrow"></div>
+          <div class="annotation-text">Make this larger & blue</div>
+        </div>
+
+        <!-- Inline Input (new: appears right next to the selection) -->
+        <div class="sim-inline-input">
+          <div class="sim-inline-arrow-indicator"></div>
+          <div class="sim-inline-textarea">Make this button bigger and change to blue</div>
+          <div class="sim-inline-actions">
+            <button class="sim-inline-submit-btn">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2l12 6-12 6V9l8-1-8-1V2z"/></svg>
+              Generate Prompt
+            </button>
+            <button class="sim-inline-ai-btn">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"/></svg>
+              AI Auto-Fix
+            </button>
+          </div>
+          <div class="sim-ai-hint">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#f59e0b"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 3h1.5v5h-1.5V4zm0 6.5h1.5V12h-1.5v-1.5z"/></svg>
+            <span>AI Auto-Fix needs API Key.</span>
+            <button class="sim-ai-hint-btn">Configure now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="steps-section">
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Select</h3>
+        <p>Click any element or drag to select a region on the page</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>Annotate</h3>
+        <p>Draw arrows, rectangles, and labels to highlight what matters</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Describe</h3>
+        <p>Tell the AI what you want in plain language</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h3>Iterate</h3>
+        <p>Get precise code changes or AI-generated fixes instantly</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <h2>Built for Everyone</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🎯</div>
+        <h4>Smart Selection</h4>
+        <p>Auto-detect DOM elements with hover highlight, or draw custom areas</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🖊️</div>
+        <h4>Rich Annotations</h4>
+        <p>Rectangles, arrows, freehand, text — everything you need to explain visually</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🧠</div>
+        <h4>Context-Aware Prompts</h4>
+        <p>Captures DOM, CSS, position, and screenshot for maximum AI understanding</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔌</div>
+        <h4>Works with Any AI</h4>
+        <p>Copy prompts to ChatGPT, Claude, Cursor, or connect via API for auto-fix</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌍</div>
+        <h4>Multilingual</h4>
+        <p>Describe changes in any language — English, Chinese, Spanish, whatever</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h4>Lightweight</h4>
+        <p>Zero performance impact. Activates only when you need it</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <a class="cta-btn" href="https://github.com/your-username/snaptweak">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      Star on GitHub
+    </a>
+    <p class="cta-sub">MIT Licensed — Free and open source forever</p>
+  </section>
+</body>
+</html>

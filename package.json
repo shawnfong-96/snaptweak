@@ -1,0 +1,34 @@
+{
+  "name": "snaptweak",
+  "version": "1.0.0",
+  "description": "Circle & describe — AI-powered visual feedback tool for iterating on web pages",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ai",
+    "visual-feedback",
+    "web-development",
+    "no-code",
+    "prompt-generation",
+    "ui-iteration"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@vitejs/plugin-vue": "^5.1.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "vue-tsc": "^2.0.0"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "vue": "^3.4.0"
+  }
+}
