@@ -1,4 +1,4 @@
-// SelectionOverlay — handles element hovering and area selection
+// SelectionOverlay — element hovering, area drawing, and adjustable selection box
 import type { SelectionArea } from '../shared/types'
 import { getCssSelector } from '../shared/utils'
 
@@ -7,17 +7,37 @@ interface SelectionOverlayOptions {
   onCancel: () => void
 }
 
+type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move'
+
+// Viewport-relative rect used while editing
+interface Rect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export class SelectionOverlay {
   private options: SelectionOverlayOptions
   private overlay: HTMLDivElement
   private highlight: HTMLDivElement
   private selectionBox: HTMLDivElement
   private tooltip: HTMLDivElement
+  private adjustBox: HTMLDivElement | null = null
+
   private isDrawing = false
   private startX = 0
   private startY = 0
   private mode: 'element' | 'area' = 'element'
   private hoveredElement: Element | null = null
+
+  // Editing state
+  private editing = false
+  private editRect: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private baseElement: Element | null = null
+  private activeHandle: Handle | null = null
+  private dragStartMouse = { x: 0, y: 0 }
+  private dragStartRect: Rect = { x: 0, y: 0, width: 0, height: 0 }
 
   constructor(options: SelectionOverlayOptions) {
     this.options = options
@@ -47,6 +67,7 @@ export class SelectionOverlay {
             Area
           </button>
         </div>
+        <span class="snaptweak-toolbar-hint">Click an element or drag to select — then drag the handles to adjust</span>
         <button class="snaptweak-cancel-btn">ESC Cancel</button>
       </div>
     `
@@ -77,9 +98,9 @@ export class SelectionOverlay {
   }
 
   private bindEvents(): void {
-    // Mode switch buttons
     this.overlay.querySelectorAll('.snaptweak-mode-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
+        if (this.editing) return
         const target = e.currentTarget as HTMLElement
         this.mode = target.dataset.mode as 'element' | 'area'
         this.overlay.querySelectorAll('.snaptweak-mode-btn').forEach((b) => b.classList.remove('active'))
@@ -87,21 +108,25 @@ export class SelectionOverlay {
       })
     })
 
-    // Cancel button
     this.overlay.querySelector('.snaptweak-cancel-btn')?.addEventListener('click', () => {
       this.options.onCancel()
     })
 
-    // Mouse events
-    document.addEventListener('mousemove', this.handleMouseMove)
-    document.addEventListener('mousedown', this.handleMouseDown)
-    document.addEventListener('mouseup', this.handleMouseUp)
-    document.addEventListener('keydown', this.handleKeyDown)
+    document.addEventListener('mousemove', this.handleMouseMove, true)
+    document.addEventListener('mousedown', this.handleMouseDown, true)
+    document.addEventListener('mouseup', this.handleMouseUp, true)
+    document.addEventListener('keydown', this.handleKeyDown, true)
   }
 
+  // ---------- Picking phase ----------
+
   private handleMouseMove = (e: MouseEvent): void => {
+    if (this.editing) {
+      this.handleEditMouseMove(e)
+      return
+    }
+
     if (this.isDrawing) {
-      // Update selection box
       const x = Math.min(e.clientX, this.startX)
       const y = Math.min(e.clientY, this.startY)
       const w = Math.abs(e.clientX - this.startX)
@@ -114,9 +139,8 @@ export class SelectionOverlay {
     }
 
     if (this.mode === 'element') {
-      // Highlight hovered element
       const target = document.elementFromPoint(e.clientX, e.clientY)
-      if (target && !target.closest('.snaptweak-overlay, .snaptweak-highlight, .snaptweak-tooltip')) {
+      if (target && !this.isOwnElement(target)) {
         this.hoveredElement = target
         const rect = target.getBoundingClientRect()
         this.highlight.style.left = `${rect.left + window.scrollX}px`
@@ -125,8 +149,6 @@ export class SelectionOverlay {
         this.highlight.style.height = `${rect.height}px`
         this.highlight.style.display = 'block'
 
-        // Update tooltip
-        const selector = getCssSelector(target)
         this.tooltip.textContent = `${target.tagName.toLowerCase()} — Click to select`
         this.tooltip.style.left = `${e.clientX + 12}px`
         this.tooltip.style.top = `${e.clientY + 12}px`
@@ -142,7 +164,11 @@ export class SelectionOverlay {
   }
 
   private handleMouseDown = (e: MouseEvent): void => {
-    if ((e.target as HTMLElement).closest('.snaptweak-overlay')) return
+    const targetEl = e.target as HTMLElement
+    if (targetEl.closest('.snaptweak-overlay')) return
+
+    // While editing, mousedown is handled by handle/move listeners (see startEditDrag)
+    if (this.editing) return
 
     if (this.mode === 'area') {
       this.isDrawing = true
@@ -154,57 +180,246 @@ export class SelectionOverlay {
       this.selectionBox.style.width = '0px'
       this.selectionBox.style.height = '0px'
       e.preventDefault()
+      e.stopPropagation()
     }
   }
 
   private handleMouseUp = (e: MouseEvent): void => {
+    // End any active resize/move drag
+    if (this.editing) {
+      if (this.activeHandle) {
+        this.activeHandle = null
+        document.body.style.userSelect = ''
+      }
+      return
+    }
     if ((e.target as HTMLElement).closest('.snaptweak-overlay')) return
 
     if (this.mode === 'element' && this.hoveredElement) {
       e.preventDefault()
       e.stopPropagation()
       const rect = this.hoveredElement.getBoundingClientRect()
-      const area: SelectionArea = {
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY,
+      this.baseElement = this.hoveredElement
+      this.highlight.style.display = 'none'
+      this.tooltip.style.display = 'none'
+      this.enterEditMode({
+        x: rect.left,
+        y: rect.top,
         width: rect.width,
         height: rect.height,
-        selector: getCssSelector(this.hoveredElement),
-        tagName: this.hoveredElement.tagName.toLowerCase(),
-        elementText: (this.hoveredElement.textContent || '').trim().slice(0, 500),
-        computedStyles: this.getRelevantStyles(this.hoveredElement),
-      }
-      this.options.onSelect(area, this.hoveredElement)
+      })
     } else if (this.mode === 'area' && this.isDrawing) {
       this.isDrawing = false
       const x = Math.min(e.clientX, this.startX)
       const y = Math.min(e.clientY, this.startY)
       const w = Math.abs(e.clientX - this.startX)
       const h = Math.abs(e.clientY - this.startY)
-
-      if (w > 10 && h > 10) {
-        // Find the element at center of selection
-        const centerEl = document.elementFromPoint(x + w / 2, y + h / 2)
-        const area: SelectionArea = {
-          x: x + window.scrollX,
-          y: y + window.scrollY,
-          width: w,
-          height: h,
-          selector: centerEl ? getCssSelector(centerEl) : 'body',
-          tagName: centerEl?.tagName.toLowerCase() || 'div',
-          elementText: (centerEl?.textContent || '').trim().slice(0, 500),
-          computedStyles: centerEl ? this.getRelevantStyles(centerEl) : {},
-        }
-        this.options.onSelect(area, centerEl || document.body)
-      }
       this.selectionBox.style.display = 'none'
+
+      if (w > 8 && h > 8) {
+        const centerEl = document.elementFromPoint(x + w / 2, y + h / 2)
+        this.baseElement = centerEl && !this.isOwnElement(centerEl) ? centerEl : document.body
+        this.enterEditMode({ x, y, width: w, height: h })
+      }
     }
   }
 
   private handleKeyDown = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') {
+      e.preventDefault()
       this.options.onCancel()
+    } else if (e.key === 'Enter' && this.editing) {
+      e.preventDefault()
+      this.confirmSelection()
     }
+  }
+
+  // ---------- Editing phase (adjustable box) ----------
+
+  private enterEditMode(rect: Rect): void {
+    this.editing = true
+    this.editRect = { ...rect }
+    this.tooltip.style.display = 'none'
+    this.highlight.style.display = 'none'
+    this.renderAdjustBox()
+  }
+
+  private renderAdjustBox(): void {
+    if (!this.adjustBox) {
+      const box = document.createElement('div')
+      box.className = 'snaptweak-adjust-box'
+      box.innerHTML = `
+        <div class="snaptweak-adjust-handle" data-handle="nw"></div>
+        <div class="snaptweak-adjust-handle" data-handle="n"></div>
+        <div class="snaptweak-adjust-handle" data-handle="ne"></div>
+        <div class="snaptweak-adjust-handle" data-handle="e"></div>
+        <div class="snaptweak-adjust-handle" data-handle="se"></div>
+        <div class="snaptweak-adjust-handle" data-handle="s"></div>
+        <div class="snaptweak-adjust-handle" data-handle="sw"></div>
+        <div class="snaptweak-adjust-handle" data-handle="w"></div>
+        <div class="snaptweak-adjust-size"></div>
+        <div class="snaptweak-adjust-actions">
+          <button class="snaptweak-adjust-confirm">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 11.5L3 8l1.4-1.4 2.1 2.1L11.6 4 13 5.4z"/></svg>
+            Confirm
+          </button>
+          <button class="snaptweak-adjust-cancel">Cancel</button>
+        </div>
+      `
+      document.body.appendChild(box)
+      this.adjustBox = box
+
+      // Handles
+      box.querySelectorAll('.snaptweak-adjust-handle').forEach((h) => {
+        h.addEventListener('mousedown', (ev) => {
+          ev.preventDefault()
+          ev.stopPropagation()
+          this.startEditDrag((h as HTMLElement).dataset.handle as Handle, ev as MouseEvent)
+        })
+      })
+
+      // Move (drag body, but not on handles/actions)
+      box.addEventListener('mousedown', (ev) => {
+        const t = ev.target as HTMLElement
+        if (t.closest('.snaptweak-adjust-handle') || t.closest('.snaptweak-adjust-actions')) return
+        ev.preventDefault()
+        ev.stopPropagation()
+        this.startEditDrag('move', ev as MouseEvent)
+      })
+
+      box.querySelector('.snaptweak-adjust-confirm')?.addEventListener('click', (ev) => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        this.confirmSelection()
+      })
+      box.querySelector('.snaptweak-adjust-cancel')?.addEventListener('click', (ev) => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        this.options.onCancel()
+      })
+    }
+    this.updateAdjustBox()
+  }
+
+  private updateAdjustBox(): void {
+    if (!this.adjustBox) return
+    const r = this.editRect
+    this.adjustBox.style.left = `${r.x}px`
+    this.adjustBox.style.top = `${r.y}px`
+    this.adjustBox.style.width = `${r.width}px`
+    this.adjustBox.style.height = `${r.height}px`
+    const sizeLabel = this.adjustBox.querySelector('.snaptweak-adjust-size')
+    if (sizeLabel) sizeLabel.textContent = `${Math.round(r.width)} × ${Math.round(r.height)}`
+  }
+
+  private startEditDrag(handle: Handle, e: MouseEvent): void {
+    this.activeHandle = handle
+    this.dragStartMouse = { x: e.clientX, y: e.clientY }
+    this.dragStartRect = { ...this.editRect }
+    document.body.style.userSelect = 'none'
+  }
+
+  private handleEditMouseMove = (e: MouseEvent): void => {
+    if (!this.activeHandle) return
+    const dx = e.clientX - this.dragStartMouse.x
+    const dy = e.clientY - this.dragStartMouse.y
+    const s = this.dragStartRect
+    let { x, y, width, height } = s
+    const minSize = 16
+
+    switch (this.activeHandle) {
+      case 'move':
+        x = s.x + dx
+        y = s.y + dy
+        break
+      case 'n':
+        y = s.y + dy
+        height = s.height - dy
+        break
+      case 's':
+        height = s.height + dy
+        break
+      case 'e':
+        width = s.width + dx
+        break
+      case 'w':
+        x = s.x + dx
+        width = s.width - dx
+        break
+      case 'ne':
+        y = s.y + dy
+        height = s.height - dy
+        width = s.width + dx
+        break
+      case 'nw':
+        x = s.x + dx
+        y = s.y + dy
+        width = s.width - dx
+        height = s.height - dy
+        break
+      case 'se':
+        width = s.width + dx
+        height = s.height + dy
+        break
+      case 'sw':
+        x = s.x + dx
+        width = s.width - dx
+        height = s.height + dy
+        break
+    }
+
+    // Enforce minimum size without flipping
+    if (width < minSize) {
+      if (this.activeHandle.includes('w')) x = s.x + s.width - minSize
+      width = minSize
+    }
+    if (height < minSize) {
+      if (this.activeHandle.includes('n')) y = s.y + s.height - minSize
+      height = minSize
+    }
+
+    this.editRect = { x, y, width, height }
+    this.updateAdjustBox()
+  }
+
+  private confirmSelection(): void {
+    const r = this.editRect
+    // Re-detect the element under the center of the (possibly adjusted) box,
+    // hiding our own UI so elementFromPoint sees the real page element.
+    const prevAdjustDisplay = this.adjustBox?.style.display
+    if (this.adjustBox) this.adjustBox.style.display = 'none'
+    const overlayDisplay = this.overlay.style.display
+    this.overlay.style.display = 'none'
+
+    const centerEl = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+
+    if (this.adjustBox && prevAdjustDisplay !== undefined) this.adjustBox.style.display = prevAdjustDisplay
+    this.overlay.style.display = overlayDisplay
+
+    const targetEl =
+      centerEl && !this.isOwnElement(centerEl)
+        ? centerEl
+        : this.baseElement && !this.isOwnElement(this.baseElement)
+          ? this.baseElement
+          : document.body
+
+    const area: SelectionArea = {
+      x: r.x + window.scrollX,
+      y: r.y + window.scrollY,
+      width: r.width,
+      height: r.height,
+      selector: getCssSelector(targetEl),
+      tagName: targetEl.tagName.toLowerCase(),
+      elementText: (targetEl.textContent || '').trim().slice(0, 500),
+      computedStyles: this.getRelevantStyles(targetEl),
+    }
+    this.options.onSelect(area, targetEl)
+  }
+
+  private isOwnElement(el: Element): boolean {
+    return !!el.closest(
+      '.snaptweak-overlay, .snaptweak-highlight, .snaptweak-tooltip, .snaptweak-selection-box, .snaptweak-adjust-box, .snaptweak-inline-input, .snaptweak-annotation-container'
+    )
   }
 
   private getRelevantStyles(element: Element): Record<string, string> {
@@ -224,13 +439,16 @@ export class SelectionOverlay {
   }
 
   destroy(): void {
-    document.removeEventListener('mousemove', this.handleMouseMove)
-    document.removeEventListener('mousedown', this.handleMouseDown)
-    document.removeEventListener('mouseup', this.handleMouseUp)
-    document.removeEventListener('keydown', this.handleKeyDown)
+    document.body.style.userSelect = ''
+    document.removeEventListener('mousemove', this.handleMouseMove, true)
+    document.removeEventListener('mousedown', this.handleMouseDown, true)
+    document.removeEventListener('mouseup', this.handleMouseUp, true)
+    document.removeEventListener('keydown', this.handleKeyDown, true)
     this.overlay.remove()
     this.highlight.remove()
     this.selectionBox.remove()
     this.tooltip.remove()
+    this.adjustBox?.remove()
+    this.adjustBox = null
   }
 }

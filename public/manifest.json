@@ -3,7 +3,13 @@
   "name": "SnapTweak",
   "version": "1.0.0",
   "description": "Circle anything on a webpage, describe what you want changed, and get AI-ready prompts or automatic fixes.",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "tabs"],
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {

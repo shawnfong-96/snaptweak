@@ -9,6 +9,12 @@ interface InlineInputOptions {
   onCancel: () => void
 }
 
+const PROVIDER_HELP: Record<string, string> = {
+  openai: 'https://platform.openai.com/api-keys',
+  anthropic: 'https://console.anthropic.com/settings/keys',
+  custom: 'https://platform.openai.com/api-keys',
+}
+
 export class InlineInput {
   private options: InlineInputOptions
   private container: HTMLDivElement
@@ -24,8 +30,11 @@ export class InlineInput {
 
   private async checkApiKey(): Promise<void> {
     try {
-      const result = await chrome.storage.sync.get(['apiKey', 'apiProvider'])
-      this.hasApiKey = !!(result.apiKey && result.apiKey.trim())
+      // Check both flat keys (inline setup) and nested settings (options page)
+      const result = await chrome.storage.sync.get(['apiKey', 'apiProvider', 'settings'])
+      const flatKey = result.apiKey && String(result.apiKey).trim()
+      const settingsKey = result.settings?.apiKey && String(result.settings.apiKey).trim()
+      this.hasApiKey = !!(flatKey || settingsKey)
       this.updateAIButtonState()
     } catch {
       this.hasApiKey = false
@@ -232,8 +241,14 @@ export class InlineInput {
         return
       }
 
-      // Save to chrome.storage
-      await chrome.storage.sync.set({ apiKey, apiProvider: provider })
+      // Save to chrome.storage — write both flat keys and into settings so
+      // the background worker (which reads settings) picks it up immediately.
+      const existing = (await chrome.storage.sync.get('settings')).settings || {}
+      await chrome.storage.sync.set({
+        apiKey,
+        apiProvider: provider,
+        settings: { ...existing, apiKey, aiProvider: provider },
+      })
       this.hasApiKey = true
       this.updateAIButtonState()
 
@@ -254,10 +269,11 @@ export class InlineInput {
       hint.style.display = 'none'
     })
 
-    // Help link
+    // Help link — opens the selected provider's API key page
     hint.querySelector('.snaptweak-api-help-link')?.addEventListener('click', (e) => {
       e.preventDefault()
-      chrome.runtime.sendMessage({ type: 'OPEN_API_HELP' })
+      const provider = (hint.querySelector('.snaptweak-api-provider-select') as HTMLSelectElement)?.value || 'openai'
+      window.open(PROVIDER_HELP[provider] || PROVIDER_HELP.openai, '_blank')
     })
   }
 
@@ -268,21 +284,29 @@ export class InlineInput {
     }, 100)
   }
 
-  showResult(prompt: string): void {
+  showResult(prompt: string, warning?: string, wasAI?: boolean): void {
     const inner = this.container.querySelector('.snaptweak-inline-input-inner') as HTMLElement
+    const title = wasAI && !warning ? 'AI Suggested Changes' : 'Generated Prompt'
+    const tip = wasAI && !warning
+      ? 'Apply these changes to your code'
+      : 'Paste this into ChatGPT, Claude, or Cursor'
+    const warningHtml = warning
+      ? `<div class="snaptweak-inline-result-warning">${this.escapeHtml(warning)}</div>`
+      : ''
     inner.innerHTML = `
       <div class="snaptweak-inline-result">
         <div class="snaptweak-inline-result-header">
-          <span>Generated Prompt</span>
+          <span>${title}</span>
           <div class="snaptweak-inline-result-btns">
             <button class="snaptweak-inline-copy-btn">Copy</button>
             <button class="snaptweak-inline-close-btn">&times;</button>
           </div>
         </div>
+        ${warningHtml}
         <pre class="snaptweak-inline-result-content">${this.escapeHtml(prompt)}</pre>
         <div class="snaptweak-inline-result-footer">
           <button class="snaptweak-inline-new-btn">New Selection</button>
-          <span class="snaptweak-inline-result-tip">Paste this into ChatGPT, Claude, or Cursor</span>
+          <span class="snaptweak-inline-result-tip">${tip}</span>
         </div>
       </div>
     `
@@ -315,14 +339,15 @@ export class InlineInput {
     })
   }
 
-  showLoading(): void {
+  showLoading(useAI = false): void {
     const submitBtn = this.container.querySelector('.snaptweak-inline-submit-btn') as HTMLButtonElement
-    if (submitBtn) {
-      submitBtn.disabled = true
-      submitBtn.innerHTML = `
-        <span class="snaptweak-spinner"></span>
-        Generating...
-      `
+    const aiBtn = this.container.querySelector('.snaptweak-inline-ai-btn') as HTMLButtonElement
+    const label = useAI ? 'Asking AI...' : 'Generating...'
+    const targetBtn = useAI ? aiBtn : submitBtn
+    if (submitBtn) submitBtn.disabled = true
+    if (aiBtn) aiBtn.classList.add('disabled')
+    if (targetBtn) {
+      targetBtn.innerHTML = `<span class="snaptweak-spinner"></span> ${label}`
     }
   }
 

@@ -111,6 +111,116 @@ body.snaptweak-active * {
   pointer-events: none;
 }
 
+/* ===== Adjustable Selection Box (with resize handles) ===== */
+.snaptweak-adjust-box {
+  position: fixed;
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  z-index: 2147483643;
+  pointer-events: all;
+  cursor: move;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.25);
+}
+
+.snaptweak-adjust-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #6366f1;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.snaptweak-adjust-handle[data-handle="nw"] { top: -7px; left: -7px; cursor: nwse-resize; }
+.snaptweak-adjust-handle[data-handle="n"]  { top: -7px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+.snaptweak-adjust-handle[data-handle="ne"] { top: -7px; right: -7px; cursor: nesw-resize; }
+.snaptweak-adjust-handle[data-handle="e"]  { top: 50%; right: -7px; margin-top: -6px; cursor: ew-resize; }
+.snaptweak-adjust-handle[data-handle="se"] { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.snaptweak-adjust-handle[data-handle="s"]  { bottom: -7px; left: 50%; margin-left: -6px; cursor: ns-resize; }
+.snaptweak-adjust-handle[data-handle="sw"] { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.snaptweak-adjust-handle[data-handle="w"]  { top: 50%; left: -7px; margin-top: -6px; cursor: ew-resize; }
+
+.snaptweak-adjust-size {
+  position: absolute;
+  top: -26px;
+  left: 0;
+  padding: 2px 8px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.snaptweak-adjust-actions {
+  position: absolute;
+  bottom: -42px;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  pointer-events: all;
+}
+
+.snaptweak-adjust-confirm {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transition: all 0.15s ease;
+}
+
+.snaptweak-adjust-confirm:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.snaptweak-adjust-cancel {
+  padding: 7px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.snaptweak-adjust-cancel:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* Toolbar hint text */
+.snaptweak-toolbar-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+/* Result warning banner */
+.snaptweak-inline-result-warning {
+  padding: 7px 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.4;
+}
+
 /* Tooltip */
 .snaptweak-tooltip {
   position: fixed;
