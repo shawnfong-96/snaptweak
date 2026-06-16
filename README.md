@@ -38,10 +38,21 @@ You **know** what you want to change, but you don't know how to express it in co
 
 **SnapTweak** bridges the gap between "I can see what's wrong" and "here's the exact fix."
 
-1. **Circle** the element directly on the page
-2. **Annotate** with arrows, highlights, and labels
-3. **Describe** what you want in plain language
-4. **Get** a precise, context-rich prompt — or let AI auto-fix it
+1. **Circle & adjust** — click an element or drag a region, then fine-tune the selection box by dragging its handles to pin down *exactly* the area you mean
+2. **Describe** what you want in plain language, right next to your selection
+3. **Get a precise, token-efficient prompt** — copy it into any AI chat (WorkBuddy, ChatGPT, Claude, Cursor…) and the AI changes *exactly* the right element, first try
+
+> 💡 **No API key required.** The default flow generates a ready-to-paste prompt — completely free. Power users can optionally plug in their own API key for in-extension auto-fix.
+
+### Why it matters: pinpoint targeting + fewer wasted tokens
+
+When you paste "make my site better" into an AI, it has no idea *which* element you mean — so it asks follow-up questions, guesses wrong, or rewrites half your page. That's wasted back-and-forth and **wasted tokens**.
+
+SnapTweak hands the AI a tightly-scoped, context-rich instruction instead:
+
+- 🎯 **Adjustable selection** — resize and move the box until it frames the precise element, so there's zero ambiguity about *what* to change
+- 🧠 **Precise prompt** — the generated prompt carries the exact **DOM selector**, current CSS, element text, and position, so the AI edits the *right* node without scanning your whole page
+- 💸 **Lower token cost** — because the target is unambiguous and self-contained, the AI needs no clarifying rounds and reads no irrelevant context — meaning **fewer tokens, lower cost, faster results**
 
 <a name="demo"></a>
 
@@ -55,30 +66,28 @@ You **know** what you want to change, but you don't know how to express it in co
 
 ## ✨ Features
 
-### 🎯 Smart Selection
-- **Element Mode**: Hover and click to select any element with precise DOM targeting
-- **Area Mode**: Drag to capture any rectangular region on the page
+### 🎯 Pinpoint Selection — *you* decide the exact boundary
+- **Element Mode**: hover and click to snap to any element with precise DOM targeting
+- **Area Mode**: drag to capture any rectangular region
+- **Adjustable box**: after selecting, drag the 8 resize handles or move the whole box to frame *exactly* what you mean — no more "the AI changed the wrong thing"
+- **Persistent marker**: your selection stays highlighted while you type, and the page locks so it never drifts out of place
 
-### 🖊️ Rich Annotation Tools
-- Rectangle highlighting
-- Freehand drawing
-- Arrow pointers
-- Text labels
-- Multiple colors & stroke widths
+### 🧠 Precise, Token-Efficient Prompts
+- Captures the exact **DOM selector**, CSS properties, element text, and position
+- Produces a self-contained, unambiguous instruction so the AI edits the **right node on the first try** — no clarifying questions, no scanning your whole page
+- **Fewer tokens, lower cost**: a tight, scoped prompt means the AI reads less and guesses less
+- **Auto-copied & one-click paste** — drop it straight into WorkBuddy, ChatGPT, Claude, or Cursor
 
-### 🧠 Intelligent Prompt Generation
-- Captures **DOM selector**, CSS properties, element text, and position
-- Includes annotated screenshot for visual context
-- Generates structured prompts optimized for AI tools (ChatGPT, Claude, Cursor, etc.)
-- **One-click copy** — paste directly into any AI assistant
+### 💸 Free by Default
+- The prompt flow needs **no API key and costs nothing** — just copy and paste into the AI chat you already use
+- Want fully automated edits? Optionally add your own key for in-extension Auto-Fix
 
-### 🤖 AI Auto-Fix (Advanced Mode)
-- Connect your own API key (OpenAI, Anthropic, or any compatible endpoint)
+### 🤖 AI Auto-Fix (Optional / Advanced)
+- Plug in your own API key (OpenAI, Anthropic, or any compatible endpoint)
 - Get code modifications generated directly within the extension
-- Preview changes before applying
 
 ### 🌍 Multilingual
-- Full English and Chinese language support
+- Full English and Chinese UI
 - Accepts descriptions in any language
 
 <a name="installation"></a>
@@ -89,7 +98,7 @@ You **know** what you want to change, but you don't know how to express it in co
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/snaptweak.git
+git clone https://github.com/shawnfong-96/snaptweak.git
 cd snaptweak
 
 # Install dependencies
@@ -115,36 +124,37 @@ npm run build
 │  Your Web Page                                          │
 │                                                         │
 │  ┌─────────────────────────┐                           │
-│  │  1. Click/Drag to       │                           │
-│  │     select element      │──┐                        │
+│  │  1. Click / drag to      │                           │
+│  │     select an element    │──┐                        │
 │  └─────────────────────────┘  │                        │
 │                                │                        │
 │  ┌─────────────────────────┐  │                        │
-│  │  2. Draw annotations    │──┤                        │
-│  │     (rect/arrow/text)   │  │                        │
+│  │  2. Drag the handles to  │──┤                        │
+│  │     fine-tune the box    │  │                        │
 │  └─────────────────────────┘  │                        │
 │                                ▼                        │
 │  ┌─────────────────────────────────────────┐           │
-│  │  3. Describe what you want              │           │
-│  │     "Make this button blue and larger"   │           │
+│  │  3. Describe what you want, inline       │           │
+│  │     "Make this section's background blue"│           │
 │  └──────────────────┬──────────────────────┘           │
 │                     │                                   │
 └─────────────────────┼───────────────────────────────────┘
                       │
                       ▼
-     ┌────────────────────────────────┐
-     │  SnapTweak generates:          │
-     │  • Screenshot + Annotations    │
-     │  • DOM selector & CSS context  │
-     │  • Structured AI prompt        │
-     └────────────────┬───────────────┘
+     ┌────────────────────────────────────────┐
+     │  SnapTweak builds a PRECISE prompt:     │
+     │  • Exact DOM selector & CSS context     │
+     │  • Element text + position + screenshot │
+     │  • Scoped → fewer tokens, no guessing   │
+     └────────────────┬───────────────────────┘
                       │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-   ┌─────────────┐      ┌──────────────┐
-   │ Copy Prompt │      │  AI Auto-Fix │
-   │ (Default)   │      │  (API Key)   │
-   └─────────────┘      └──────────────┘
+          ┌───────────┴───────────────┐
+          ▼                           ▼
+   ┌────────────────────┐   ┌──────────────────┐
+   │ Copy → paste into  │   │  AI Auto-Fix     │
+   │ WorkBuddy/ChatGPT/ │   │  (optional key)  │
+   │ Claude  (FREE)     │   │                  │
+   └────────────────────┘   └──────────────────┘
 ```
 
 <a name="ai-providers"></a>
@@ -153,10 +163,10 @@ npm run build
 
 SnapTweak works in two modes:
 
-| Mode | Requirement | How it works |
-|------|-------------|--------------|
-| **Prompt Mode** (default) | None | Generates a rich prompt; you paste into ChatGPT/Claude/Cursor |
-| **Auto-Fix Mode** | API Key | Calls the AI directly and shows code changes inline |
+| Mode | Requirement | Cost | How it works |
+|------|-------------|------|--------------|
+| **Prompt Mode** (default) | None | **Free** | Generates a precise, token-efficient prompt; you paste it into WorkBuddy / ChatGPT / Claude / Cursor |
+| **Auto-Fix Mode** | Your API Key | Pay-per-use | Calls the AI directly and shows code changes inline |
 
 ### Supported Providers
 
