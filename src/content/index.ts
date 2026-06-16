@@ -12,6 +12,8 @@ class SnapTweak {
   private currentSelection: SelectionArea | null = null
   private screenshot = ''
   private selectionViewportRect: { x: number; y: number; width: number; height: number } | null = null
+  private marker: HTMLDivElement | null = null
+  private scrollLockY = 0
 
   constructor() {
     this.listenForMessages()
@@ -53,11 +55,44 @@ class SnapTweak {
     this.isActive = false
     this.overlay?.destroy()
     this.inlineInput?.destroy()
+    this.removeMarker()
+    this.unlockPage()
     this.overlay = null
     this.inlineInput = null
     this.currentSelection = null
     this.selectionViewportRect = null
     document.body.classList.remove('snaptweak-active')
+  }
+
+  // Show a persistent marker over the confirmed selection so the user
+  // always sees what they picked while typing their instruction.
+  private showMarker(rect: { x: number; y: number; width: number; height: number }): void {
+    this.removeMarker()
+    const m = document.createElement('div')
+    m.className = 'snaptweak-confirmed-marker'
+    m.style.left = `${rect.x}px`
+    m.style.top = `${rect.y}px`
+    m.style.width = `${rect.width}px`
+    m.style.height = `${rect.height}px`
+    m.innerHTML = `<div class="snaptweak-confirmed-badge">Selected</div>`
+    document.body.appendChild(m)
+    this.marker = m
+  }
+
+  private removeMarker(): void {
+    this.marker?.remove()
+    this.marker = null
+  }
+
+  // Freeze page scrolling/interaction while the user is composing their
+  // request, so the selection marker stays aligned with the element.
+  private lockPage(): void {
+    this.scrollLockY = window.scrollY
+    document.documentElement.classList.add('snaptweak-locked')
+  }
+
+  private unlockPage(): void {
+    document.documentElement.classList.remove('snaptweak-locked')
   }
 
   private async handleSelection(area: SelectionArea, _element: Element): Promise<void> {
@@ -76,8 +111,14 @@ class SnapTweak {
     // Capture screenshot of the selected area (best-effort; failures are non-fatal)
     this.screenshot = await this.captureArea(area)
 
-    // Show the inline input right next to the selection
     if (!this.selectionViewportRect) return
+
+    // Keep a persistent marker so the user can see what they selected,
+    // and lock the page so the marker stays aligned while they type.
+    this.showMarker(this.selectionViewportRect)
+    this.lockPage()
+
+    // Show the inline input right next to the selection
     this.inlineInput = new InlineInput({
       anchorRect: this.selectionViewportRect,
       onSubmit: (description, useAI) => this.handleSubmit(description, useAI),

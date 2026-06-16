@@ -15,6 +15,37 @@ body.snaptweak-active * {
   cursor: crosshair !important;
 }
 
+/* Page lock — freeze scroll/interaction while composing the request */
+html.snaptweak-locked,
+html.snaptweak-locked body {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+/* Confirmed selection marker — stays visible while user types */
+.snaptweak-confirmed-marker {
+  position: fixed;
+  z-index: 2147483642;
+  pointer-events: none;
+  border: 2px solid #6366f1;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.28);
+}
+
+.snaptweak-confirmed-badge {
+  position: absolute;
+  top: -24px;
+  left: -2px;
+  padding: 2px 10px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+}
+
 /* Overlay */
 .snaptweak-overlay {
   position: fixed;
