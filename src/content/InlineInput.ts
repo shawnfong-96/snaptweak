@@ -43,17 +43,21 @@ export class InlineInput {
 
   private updateAIButtonState(): void {
     const aiBtn = this.container.querySelector('.snaptweak-inline-ai-btn') as HTMLButtonElement
-    const aiHint = this.container.querySelector('.snaptweak-ai-hint') as HTMLElement
-    if (!aiBtn || !aiHint) return
+    if (!aiBtn) return
 
     if (this.hasApiKey) {
       aiBtn.classList.remove('disabled')
-      aiBtn.title = 'Use AI to auto-fix this'
-      aiHint.style.display = 'none'
+      aiBtn.title = '使用 AI 自动改代码'
+      aiBtn.querySelector('.snaptweak-ai-btn-label')
+      aiBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"/>
+        </svg>
+        AI 自动改代码
+      `
     } else {
       aiBtn.classList.add('disabled')
-      aiBtn.title = 'API Key not configured'
-      aiHint.style.display = 'flex'
+      aiBtn.title = '高级：配置 API Key 后可自动改代码'
     }
   }
 
@@ -96,33 +100,30 @@ export class InlineInput {
         <div class="snaptweak-inline-input-row">
           <textarea
             class="snaptweak-inline-textarea"
-            placeholder="Describe what to change... / 描述你想修改什么..."
+            placeholder="描述你想修改什么... / Describe what to change..."
             rows="2"
           ></textarea>
         </div>
         <div class="snaptweak-inline-actions">
-          <button class="snaptweak-inline-submit-btn" title="Generate Prompt (Ctrl+Enter)">
+          <button class="snaptweak-inline-submit-btn primary" title="生成提示词并复制 (Ctrl+Enter)">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M2 2l12 6-12 6V9l8-1-8-1V2z"/>
+              <path d="M5.5 1a.5.5 0 000 1H6v1.5a2 2 0 01-2 2H3.5a.5.5 0 000 1H4a2 2 0 012 2V11h-.5a.5.5 0 000 1H6v1.5a.5.5 0 001 0V12h.5a.5.5 0 000-1H7V9.5a2 2 0 012-2h.5a.5.5 0 000-1H9a2 2 0 01-2-2V2h.5a.5.5 0 000-1h-2z"/>
             </svg>
-            Generate Prompt
+            生成提示词 · 复制到 AI
           </button>
-          <button class="snaptweak-inline-ai-btn disabled" title="API Key not configured">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+        </div>
+        <div class="snaptweak-inline-free-tip">
+          免费 · 无需 API Key — 复制后粘贴到 WorkBuddy / ChatGPT / Claude 对话框即可
+        </div>
+        <div class="snaptweak-inline-advanced">
+          <button class="snaptweak-inline-ai-btn disabled" title="高级：配置 API Key 后可自动改代码">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM6 6.5A2 2 0 118 8.5a.75.75 0 00-.75.75v.75h-1.5v-.75A2.25 2.25 0 018 7a.5.5 0 10-.5-.5H6zm1.25 5.5h1.5v1.5h-1.5V12z"/>
             </svg>
-            AI Auto-Fix
+            高级：AI 自动改代码（需 API Key）
           </button>
         </div>
-        <div class="snaptweak-ai-hint" style="display:flex">
-          <div class="snaptweak-ai-hint-content">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="#f59e0b">
-              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 3h1.5v5h-1.5V4zm0 6.5h1.5V12h-1.5v-1.5z"/>
-            </svg>
-            <span>AI Auto-Fix requires an API Key.</span>
-            <button class="snaptweak-inline-setup-btn">Configure now</button>
-          </div>
-        </div>
+        <div class="snaptweak-ai-hint" style="display:none"></div>
       </div>
       <div class="snaptweak-inline-arrow ${placement}"></div>
     `
@@ -157,19 +158,13 @@ export class InlineInput {
       this.submit(false)
     })
 
-    // AI Fix button
+    // AI Fix button (advanced)
     this.container.querySelector('.snaptweak-inline-ai-btn')?.addEventListener('click', () => {
       if (!this.hasApiKey) {
-        // Show setup hint prominently
         this.showApiKeySetup()
         return
       }
       this.submit(true)
-    })
-
-    // Setup button in hint
-    this.container.querySelector('.snaptweak-inline-setup-btn')?.addEventListener('click', () => {
-      this.showApiKeySetup()
     })
 
     // Click outside to cancel (but not on the selection itself)
@@ -286,53 +281,65 @@ export class InlineInput {
 
   showResult(prompt: string, warning?: string, wasAI?: boolean): void {
     const inner = this.container.querySelector('.snaptweak-inline-input-inner') as HTMLElement
-    const title = wasAI && !warning ? 'AI Suggested Changes' : 'Generated Prompt'
-    const tip = wasAI && !warning
-      ? 'Apply these changes to your code'
-      : 'Paste this into ChatGPT, Claude, or Cursor'
+    const isAIResult = wasAI && !warning
+    const title = isAIResult ? 'AI 给出的修改建议' : '提示词已生成'
     const warningHtml = warning
       ? `<div class="snaptweak-inline-result-warning">${this.escapeHtml(warning)}</div>`
       : ''
+    // For the free (prompt) path, lead with a prominent "paste into chat" banner
+    const guideHtml = isAIResult
+      ? ''
+      : `<div class="snaptweak-inline-paste-guide">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="#16a34a"><path d="M6.5 11.5L3 8l1.4-1.4 2.1 2.1L11.6 4 13 5.4z"/></svg>
+          <span>已自动复制到剪贴板，去 <b>WorkBuddy / ChatGPT / Claude</b> 对话框粘贴即可（无需 API Key）</span>
+        </div>`
     inner.innerHTML = `
       <div class="snaptweak-inline-result">
         <div class="snaptweak-inline-result-header">
           <span>${title}</span>
           <div class="snaptweak-inline-result-btns">
-            <button class="snaptweak-inline-copy-btn">Copy</button>
+            <button class="snaptweak-inline-copy-btn">复制</button>
             <button class="snaptweak-inline-close-btn">&times;</button>
           </div>
         </div>
         ${warningHtml}
+        ${guideHtml}
         <pre class="snaptweak-inline-result-content">${this.escapeHtml(prompt)}</pre>
         <div class="snaptweak-inline-result-footer">
-          <button class="snaptweak-inline-new-btn">New Selection</button>
-          <span class="snaptweak-inline-result-tip">${tip}</span>
+          <button class="snaptweak-inline-new-btn">重新选择</button>
+          <span class="snaptweak-inline-result-tip">${isAIResult ? '把这些改动应用到你的代码' : '提示：粘贴后 AI 会直接给你改好的代码'}</span>
         </div>
       </div>
     `
 
-    // Bind copy
-    inner.querySelector('.snaptweak-inline-copy-btn')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(prompt).then(() => {
-        const btn = inner.querySelector('.snaptweak-inline-copy-btn')!
-        btn.textContent = 'Copied!'
-        btn.classList.add('copied')
-        setTimeout(() => {
-          btn.textContent = 'Copy'
-          btn.classList.remove('copied')
-        }, 2000)
-      })
+    const copyBtn = inner.querySelector('.snaptweak-inline-copy-btn') as HTMLElement
+    const markCopied = () => {
+      copyBtn.textContent = '已复制 ✓'
+      copyBtn.classList.add('copied')
+      setTimeout(() => {
+        copyBtn.textContent = '复制'
+        copyBtn.classList.remove('copied')
+      }, 2000)
+    }
+
+    // Auto-copy immediately for the free prompt path so the user can paste right away
+    if (!isAIResult) {
+      navigator.clipboard.writeText(prompt).then(markCopied).catch(() => {})
+    }
+
+    // Manual copy button
+    copyBtn?.addEventListener('click', () => {
+      navigator.clipboard.writeText(prompt).then(markCopied).catch(() => {})
     })
 
-    // Bind close
+    // Close
     inner.querySelector('.snaptweak-inline-close-btn')?.addEventListener('click', () => {
       this.options.onCancel()
     })
 
-    // Bind new selection
+    // New selection
     inner.querySelector('.snaptweak-inline-new-btn')?.addEventListener('click', () => {
       this.options.onCancel()
-      // Re-activate after a short delay
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: 'RESTART_SELECTION' })
       }, 100)
@@ -342,7 +349,7 @@ export class InlineInput {
   showLoading(useAI = false): void {
     const submitBtn = this.container.querySelector('.snaptweak-inline-submit-btn') as HTMLButtonElement
     const aiBtn = this.container.querySelector('.snaptweak-inline-ai-btn') as HTMLButtonElement
-    const label = useAI ? 'Asking AI...' : 'Generating...'
+    const label = useAI ? 'AI 处理中...' : '生成中...'
     const targetBtn = useAI ? aiBtn : submitBtn
     if (submitBtn) submitBtn.disabled = true
     if (aiBtn) aiBtn.classList.add('disabled')
