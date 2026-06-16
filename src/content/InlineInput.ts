@@ -164,7 +164,14 @@ export class InlineInput {
         this.showApiKeySetup()
         return
       }
-      this.submit(true)
+      // Validate there's a description first
+      const textarea = this.container.querySelector('.snaptweak-inline-textarea') as HTMLTextAreaElement
+      if (!textarea.value.trim()) {
+        textarea.classList.add('snaptweak-shake')
+        setTimeout(() => textarea.classList.remove('snaptweak-shake'), 500)
+        return
+      }
+      this.showAiConfirm()
     })
 
     // Click outside to cancel (but not on the selection itself)
@@ -190,6 +197,54 @@ export class InlineInput {
       return
     }
     this.options.onSubmit(description, useAI)
+  }
+
+  // Before spending tokens on AI Auto-Fix, confirm with the user — and warn
+  // when the page is clearly not their own editable source (can't apply the fix).
+  private showAiConfirm(): void {
+    const host = window.location.hostname
+    const isLocal =
+      location.protocol === 'file:' ||
+      /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(host) ||
+      /\.local$/i.test(host)
+    const pageLabel = location.protocol === 'file:' ? '本地文件' : (host || '当前页面')
+
+    const warnHtml = isLocal
+      ? ''
+      : `<div class="snaptweak-ai-confirm-warn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="#d97706" style="flex-shrink:0;margin-top:1px"><path d="M8 1l7 13H1L8 1zm-.75 5h1.5v4h-1.5V6zm0 5h1.5v1.5h-1.5V11z"/></svg>
+          <span><b>${this.escapeHtml(pageLabel)}</b> 看起来不是你自己的项目。AI 生成的代码<b>需要你能改这个页面的源码</b>才能用上——否则会白花 token。</span>
+        </div>`
+
+    const inner = this.container.querySelector('.snaptweak-inline-input-inner') as HTMLElement
+    const overlay = document.createElement('div')
+    overlay.className = 'snaptweak-ai-confirm'
+    overlay.innerHTML = `
+      <div class="snaptweak-ai-confirm-card">
+        <div class="snaptweak-ai-confirm-title">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="#6366f1"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13z"/></svg>
+          确认使用 AI 自动改代码？
+        </div>
+        <div class="snaptweak-ai-confirm-body">
+          这会调用你配置的 AI API（<b>按你的额度计费</b>）。当前页面：<b>${this.escapeHtml(pageLabel)}</b>
+        </div>
+        ${warnHtml}
+        <div class="snaptweak-ai-confirm-actions">
+          <button class="snaptweak-ai-confirm-cancel">改用免费提示词</button>
+          <button class="snaptweak-ai-confirm-ok">继续调用 AI</button>
+        </div>
+      </div>
+    `
+    inner.appendChild(overlay)
+
+    overlay.querySelector('.snaptweak-ai-confirm-ok')?.addEventListener('click', () => {
+      overlay.remove()
+      this.submit(true)
+    })
+    overlay.querySelector('.snaptweak-ai-confirm-cancel')?.addEventListener('click', () => {
+      overlay.remove()
+      this.submit(false)
+    })
   }
 
   private showApiKeySetup(): void {
@@ -308,6 +363,9 @@ export class InlineInput {
         <div class="snaptweak-inline-result-footer">
           <button class="snaptweak-inline-new-btn">重新选择</button>
           <span class="snaptweak-inline-result-tip">${isAIResult ? '把这些改动应用到你的代码' : '提示：粘贴后 AI 会直接给你改好的代码'}</span>
+        </div>
+        <div class="snaptweak-inline-result-srctip">
+          适用于你<b>拥有源码</b>的页面 — 改完后需自行更新文件并重新部署
         </div>
       </div>
     `

@@ -1,27 +1,54 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const isActive = ref(false)
 const historyCount = ref(0)
+const blockedReason = ref('')
 
-onMounted(async () => {
-  // Get history count
+// URLs where Chrome forbids content-script injection
+function getRestrictedReason(url: string): string {
+  if (!url) return '无法读取当前页面地址'
+  if (/^(chrome|edge|brave|about|chrome-extension|devtools|view-source):/i.test(url)) {
+    return '这是浏览器的内部页面，出于安全限制无法注入工具'
+  }
+  if (/^https?:\/\/chrome\.google\.com\/webstore/i.test(url) ||
+      /^https?:\/\/chromewebstore\.google\.com/i.test(url)) {
+    return 'Chrome 应用商店页面禁止扩展运行'
+  }
+  if (/^https?:\/\/microsoftedge\.microsoft\.com\/addons/i.test(url)) {
+    return 'Edge 扩展商店页面禁止扩展运行'
+  }
+  return ''
+}
+
+onMounted(() => {
   chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (response) => {
-    if (response?.history) {
-      historyCount.value = response.history.length
-    }
+    if (response?.history) historyCount.value = response.history.length
   })
 })
 
 function startSelection() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]?.id) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'START_SELECTION' })
-      isActive.value = true
-      // Close popup after activating
-      window.close()
+    const tab = tabs[0]
+    if (!tab?.id) return
+    const reason = getRestrictedReason(tab.url || '')
+    if (reason) {
+      blockedReason.value = reason
+      return
     }
+    // Try to message the content script; if it isn't there (e.g. the page was
+    // open before install), show a friendly hint to reload the page.
+    chrome.tabs.sendMessage(tab.id, { type: 'START_SELECTION' }, () => {
+      if (chrome.runtime.lastError) {
+        blockedReason.value = '当前页面尚未加载工具，请刷新此网页后重试'
+        return
+      }
+      window.close()
+    })
   })
+}
+
+function dismissBlocked() {
+  blockedReason.value = ''
 }
 
 function openOptions() {
@@ -47,7 +74,21 @@ function openOptions() {
     </div>
 
     <div class="popup-body">
-      <button class="start-btn" @click="startSelection">
+      <div v-if="blockedReason" class="blocked-notice">
+        <div class="blocked-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706">
+            <path d="M10 1a9 9 0 100 18 9 9 0 000-18zm-1 5h2v6H9V6zm0 8h2v2H9v-2z"/>
+          </svg>
+        </div>
+        <div class="blocked-text">
+          <strong>这个页面用不了 SnapTweak</strong>
+          <span>{{ blockedReason }}。</span>
+          <span class="blocked-hint">请在普通网页（你自己的项目、本地 HTML、任意 http/https 站点）上使用。</span>
+        </div>
+        <button class="blocked-dismiss" @click="dismissBlocked">知道了</button>
+      </div>
+
+      <button v-else class="start-btn" @click="startSelection">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="10" cy="10" r="7"/>
           <path d="M10 6v8M6 10h8" stroke-linecap="round"/>
@@ -65,7 +106,7 @@ function openOptions() {
           </div>
           <div class="step">
             <div class="step-icon">2</div>
-            <div class="step-text">Draw annotations to highlight specifics</div>
+            <div class="step-text">Drag the handles to fine-tune the selection</div>
           </div>
           <div class="step">
             <div class="step-icon">3</div>
@@ -73,7 +114,7 @@ function openOptions() {
           </div>
           <div class="step">
             <div class="step-icon">4</div>
-            <div class="step-text">Get AI-ready prompt or auto-fix</div>
+            <div class="step-text">Get a precise prompt (free) or AI auto-fix</div>
           </div>
         </div>
       </div>
